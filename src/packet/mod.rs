@@ -1,4 +1,4 @@
-use std::{io::{self, Read, Cursor, Write}, vec};
+use std::{io::{self, Read, Write}, vec};
 use anyhow::{Result, bail};
 pub mod raw;
 pub mod types;
@@ -59,7 +59,7 @@ impl io::Write for RawPacket {
 }
 
 impl RawPacket {
-    pub fn unpack(r: &impl AsRef<[u8]>, threshold: i32) -> Result<Self>{
+    pub fn unpack(r: &mut impl io::Read, threshold: i32) -> Result<Self>{
         if threshold >= 0 {
             Self::unpack_with_compression(r, threshold)
         } else {
@@ -67,30 +67,26 @@ impl RawPacket {
         }
     }
 
-    fn unpack_without_compression(r: impl AsRef<[u8]>) -> Result<Self> {
-        let c = &mut Cursor::new(r);
-        let pos = c.position();
-        let len = VarInt::read_from(c)?.0 as usize;
-        let id = VarInt::read_from(c)?;
-        let len = len - (c.position() - pos) as usize;
+    fn unpack_without_compression(r: &mut impl io::Read) -> Result<Self> {
+        let len = VarInt::read_from(r)?.0 as usize;
         let mut buf = vec![0; len];
-        c.read_exact(&mut buf)?;
+        r.read_exact(&mut buf)?;
+
+        let mut buf = buf.as_slice();
+        let id = VarInt::read_from(&mut buf)?;
         
         Ok(Self {
             id,
-            data: buf,
+            data: buf.to_vec(),
         })
     }
 
-    fn unpack_with_compression(r: &impl AsRef<[u8]>, threshold: i32) -> Result<Self> {
-        let c = &mut Cursor::new(r);
-        
-        let pos = c.position();
-        
-        let pk_len = VarInt::read_from(c)?.0 as usize;
-        let data_len = VarInt::read_from(c)?.0;
-        
-        let len = pk_len - (c.position() - pos) as usize;
+    fn unpack_with_compression(r: &mut impl io::Read, threshold: i32) -> Result<Self> {        
+        let pk_len = VarInt::read_from(r)?.0 as usize;
+        let mut buf = vec![0u8; pk_len];
+        r.read_exact(&mut buf)?;
+        let mut buf = buf.as_slice();
+        let data_len = VarInt::read_from(&mut buf)?.0;
 
         let id: VarInt;
 
@@ -104,9 +100,7 @@ impl RawPacket {
             if data_len > 2097152 {
                 bail!("data length is larger than protocol maximum");
             }
-            
-            let mut buf = vec![0; len];
-            c.read_exact(&mut buf)?;
+
             
             let mut decoder = ZlibDecoder::new(&buf[..]);
             let buf = &mut Vec::new();
@@ -120,13 +114,9 @@ impl RawPacket {
             data = buf.to_vec();
 
         } else {
-            id = VarInt::read_from(c)?;
+            id = VarInt::read_from(&mut buf)?;
             
-            let mut buf = vec![0; len];
-
-            c.read_exact(&mut buf)?;
-
-            data = buf;
+            data = buf.to_vec();
         }
 
         Ok(Self {
