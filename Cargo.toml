@@ -1,0 +1,22 @@
+[package]
+name = "net-mc"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+aes = "0.8"
+bytemuck = "1.7"
+byteorder = "1.4"
+cfb8 = "0.8"
+flate2 = "1.0"
+hematite-nbt = { git = "https://github.com/PistonDevelopers/hematite_nbt" }
+num-traits = "0.2"
+parking_lot = "0.12"
+serde = "1.0"
+thiserror = "1.0"
+uuid = "0.8"
+crossbeam-channel = "0.5"
