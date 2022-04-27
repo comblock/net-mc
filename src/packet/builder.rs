@@ -145,13 +145,13 @@ macro_rules! def_enum {
             )*
         }
 
-        impl crate::Readable for $ident {
-            fn read_from(buffer: &mut ::std::io::Cursor<&[u8]>, version: crate::ProtocolVersion) -> anyhow::Result<Self>
+        impl packet::Decoder for $ident {
+            fn read_from(buffer: &mut impl std::io::Read) -> anyhow::Result<Self>
                 where
                     Self: Sized
             {
                 use anyhow::Context as _;
-                let discriminant = <$discriminant_type>::read(buffer, version)
+                let discriminant = <$discriminant_type>::read_from(buffer)
                     .context(concat!("failed to read discriminant for enum type ", stringify!($ident)))?;
 
                 match discriminant_to_literal!($discriminant_type, discriminant) {
@@ -184,8 +184,8 @@ macro_rules! def_enum {
             }
         }
 
-        impl crate::Writeable for $ident {
-            fn write_to(&self, buffer: &mut Vec<u8>, version: crate::ProtocolVersion) -> anyhow::Result<()> {
+        impl packet::Encoder for $ident {
+            fn write_to(&self, buffer: &mut impl std::io::Write) -> anyhow::Result<()> {
                 match self {
                     $(
                         $ident::$variant $(
@@ -194,7 +194,7 @@ macro_rules! def_enum {
                             }
                         )? => {
                             let discriminant = <$discriminant_type>::from($discriminant);
-                            discriminant.write(buffer, version)?;
+                            discriminant.write_to(buffer)?;
 
                             $(
                                 $(

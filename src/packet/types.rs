@@ -1,18 +1,15 @@
-pub use nbt::Blob as Nbt;
-pub use uuid::Uuid;
-use anyhow::{bail, Result};
 use super::raw;
 use super::{Decoder, Encoder};
+use anyhow::{bail, Result};
+pub use nbt::Blob as Nbt;
 use std::{
     borrow::Cow,
     convert::{TryFrom, TryInto},
-    io,     
-    iter,
+    io, iter,
     marker::PhantomData,
     num::TryFromIntError,
 };
-
-
+pub use uuid::Uuid;
 
 impl Encoder for u8 {
     fn write_to(&self, w: &mut impl io::Write) -> Result<()> {

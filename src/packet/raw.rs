@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use byteorder::{ReadBytesExt, WriteBytesExt, BE};
 use std::io;
 use uuid::Uuid;
@@ -202,25 +202,25 @@ pub fn write_var_int(t: &mut impl io::Write, v: i32) -> Result<()> {
 
 #[inline]
 pub fn read_var_int(t: &mut impl io::Read) -> Result<i32> {
-        let mut num_read = 0;
-        let mut result = 0;
+    let mut num_read = 0;
+    let mut result = 0;
 
-        loop {
-            let read = t.read_u8()?;
-            let value = i32::from(read & 0b0111_1111);
-            result |= value.overflowing_shl(7 * num_read).0;
+    loop {
+        let read = t.read_u8()?;
+        let value = i32::from(read & 0b0111_1111);
+        result |= value.overflowing_shl(7 * num_read).0;
 
-            num_read += 1;
+        num_read += 1;
 
-            if num_read > 5 {
-                bail!("Varina is too large");
-            }
-            if read & 0b1000_0000 == 0 {
-                break;
-            }
+        if num_read > 5 {
+            bail!("Varint is too large");
         }
-        
-        Ok(result)
+        if read & 0b1000_0000 == 0 {
+            break;
+        }
+    }
+
+    Ok(result)
 }
 
 #[inline]
@@ -256,9 +256,7 @@ pub fn read_var_long(t: &mut impl io::Read) -> Result<i64> {
         num_read += 1;
 
         if num_read > 10 {
-            bail!(
-                "VarLong is too large."
-            );
+            bail!("VarLong is too large.");
         }
         if read & 0b1000_0000 == 0 {
             break;

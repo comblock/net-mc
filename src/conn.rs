@@ -1,13 +1,13 @@
-use std::io::{self, Write};
-use std::net::{Shutdown, SocketAddr, TcpStream};
-use std::time::Duration;
+use super::packet::*;
 use aes::Aes128;
+use anyhow::Result;
 use cfb8::{
     cipher::{AsyncStreamCipher, NewCipher},
     Cfb8,
 };
-use super::packet::*;
-use anyhow::Result;
+use std::io::{self, Write};
+use std::net::{Shutdown, SocketAddr, TcpStream};
+use std::time::Duration;
 
 #[derive(Clone, Copy)]
 pub enum ProtocolState {
@@ -35,8 +35,8 @@ pub struct Conn {
     /// State is set to Handshake on connect but is not handled by Conn.
     pub state: ProtocolState,
     pub cipher: Option<Cfb8<Aes128>>,
-    pub writer : io::BufWriter<TcpStream>,
-    pub reader : io::BufReader<TcpStream>,
+    pub writer: io::BufWriter<TcpStream>,
+    pub reader: io::BufReader<TcpStream>,
     pub threshhold: i32,
 }
 
@@ -49,7 +49,7 @@ impl io::Write for Conn {
                 cipher.encrypt(&mut data);
 
                 self.writer.write(&data)
-            },
+            }
             None => self.writer.write(buf),
         }
     }
@@ -127,7 +127,7 @@ impl Conn {
             Ok(c) => {
                 self.cipher = Some(c);
                 Ok(())
-            },
+            }
             Err(e) => Err(anyhow::anyhow!("{}", e)),
         }
     }
