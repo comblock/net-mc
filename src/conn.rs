@@ -5,7 +5,7 @@ use cfb8::{
     cipher::{AsyncStreamCipher, NewCipher},
     Cfb8,
 };
-use std::io::{self, Write};
+use std::{io::{self, Write}, convert::TryFrom, net::{TcpListener, ToSocketAddrs}};
 use std::net::{Shutdown, SocketAddr, TcpStream};
 use std::time::Duration;
 
@@ -28,9 +28,20 @@ impl ProtocolState {
     }
 }
 
+pub struct Listener(pub TcpListener);
+
+impl Listener {
+    pub fn bind(addr: impl ToSocketAddrs) -> Result<Listener> {
+        Ok(Listener(TcpListener::bind(addr)?))
+    }
+    pub fn accept(&mut self) -> Result<Conn> {
+        Ok(Conn::try_from(self.0.accept()?.0)?)
+    }
+}
+
 /// Conn wraps around TcpStream to simplify sending and receiving packets.
 pub struct Conn {
-    pub host: SocketAddr,
+    pub peer: SocketAddr,
     pub stream: TcpStream,
     /// State is set to Handshake on connect but is not handled by Conn.
     pub state: ProtocolState,
@@ -77,13 +88,30 @@ impl io::Read for Conn {
     }
 }
 
+impl TryFrom<TcpStream> for Conn {
+    type Error = anyhow::Error;
+    fn try_from(stream: TcpStream) -> Result<Self> {
+        let writer = io::BufWriter::new(stream.try_clone()?);
+        let reader = io::BufReader::new(stream.try_clone()?);
+        Ok(Self {
+            peer: stream.peer_addr()?,
+            stream,
+            state: ProtocolState::Handshake,
+            cipher: None,
+            writer,
+            reader,
+            threshhold: -1,
+        })
+    }
+}
+
 impl Conn {
     pub fn connect(addr: SocketAddr) -> anyhow::Result<Self> {
         let stream = TcpStream::connect(addr)?;
         let writer = io::BufWriter::new(stream.try_clone()?);
         let reader = io::BufReader::new(stream.try_clone()?);
         Ok(Self {
-            host: addr,
+            peer: addr,
             stream,
             state: ProtocolState::Handshake,
             cipher: None,
@@ -98,7 +126,7 @@ impl Conn {
         let writer = io::BufWriter::new(stream.try_clone()?);
         let reader = io::BufReader::new(stream.try_clone()?);
         Ok(Self {
-            host: *addr,
+            peer: *addr,
             stream,
             state: ProtocolState::Handshake,
             cipher: None,
