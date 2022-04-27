@@ -34,10 +34,15 @@ pub struct Conn {
     pub stream: TcpStream,
     /// State is set to Handshake on connect but is not handled by Conn.
     pub state: ProtocolState,
-    pub cipher: Option<Cfb8<Aes128>>,
+    cipher: Option<Cipher>,
     pub writer: io::BufWriter<TcpStream>,
     pub reader: io::BufReader<TcpStream>,
     pub threshhold: i32,
+}
+
+struct Cipher {
+    write: Cfb8<Aes128>,
+    read: Cfb8<Aes128>,
 }
 
 impl io::Write for Conn {
@@ -46,7 +51,7 @@ impl io::Write for Conn {
             Some(ref mut cipher) => {
                 let mut data = vec![0; buf.len()];
                 data[..buf.len()].clone_from_slice(&buf[..]);
-                cipher.encrypt(&mut data);
+                cipher.write.encrypt(&mut data);
 
                 self.writer.write(&data)
             }
@@ -64,7 +69,7 @@ impl io::Read for Conn {
             Option::None => self.reader.read(buf),
             Option::Some(cipher) => {
                 let ret = self.reader.read(buf)?;
-                cipher.decrypt(&mut buf[..ret]);
+                cipher.read.decrypt(&mut buf[..ret]);
 
                 Ok(ret)
             }
@@ -123,12 +128,20 @@ impl Conn {
 
     pub fn enable_encryption(&mut self, key: &[u8]) -> anyhow::Result<()> {
         let cipher = Cfb8::<Aes128>::new_from_slices(key, key);
-        match cipher {
-            Ok(c) => {
-                self.cipher = Some(c);
-                Ok(())
-            }
-            Err(e) => Err(anyhow::anyhow!("{}", e)),
-        }
+        let write = match cipher {
+            Ok(c) => c,
+            Err(e) => return Err(anyhow::anyhow!("{}", e))
+        };
+        let cipher = Cfb8::<Aes128>::new_from_slices(key, key);
+        let read = match cipher {
+            Ok(c) => c,
+            Err(e) => return Err(anyhow::anyhow!("{}", e))
+        };
+        self.cipher = Some(Cipher {
+            write,
+            read
+        });
+        
+        Ok(())
     }
 }
