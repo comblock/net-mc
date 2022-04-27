@@ -210,6 +210,7 @@ macro_rules! def_enum {
     };
 }
 
+/*
 #[macro_export]
 macro_rules! packet_enum {
     (
@@ -285,3 +286,4 @@ macro_rules! packet_enum {
         )*
     }
 }
+*/
