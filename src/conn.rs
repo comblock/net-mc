@@ -130,18 +130,15 @@ impl Conn {
         let cipher = Cfb8::<Aes128>::new_from_slices(key, key);
         let write = match cipher {
             Ok(c) => c,
-            Err(e) => return Err(anyhow::anyhow!("{}", e))
+            Err(e) => return Err(anyhow::anyhow!("{}", e)),
         };
         let cipher = Cfb8::<Aes128>::new_from_slices(key, key);
         let read = match cipher {
             Ok(c) => c,
-            Err(e) => return Err(anyhow::anyhow!("{}", e))
+            Err(e) => return Err(anyhow::anyhow!("{}", e)),
         };
-        self.cipher = Some(Cipher {
-            write,
-            read
-        });
-        
+        self.cipher = Some(Cipher { write, read });
+
         Ok(())
     }
 }

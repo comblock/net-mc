@@ -107,7 +107,6 @@ fn main() {
             }
             packets::SetCompression::ID => {
                 let packet = packets::SetCompression::decode(packet).unwrap();
-                println!("compression: {}", packet.threshold);
                 conn.set_compression_threshhold(packet.threshold)
             }
             _ => {
