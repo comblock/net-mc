@@ -18,7 +18,12 @@ fn main() {
 
     let auth = dc.authenticate(&http).unwrap();
 
-    let addr = "mc.hypixel.net:25565".to_socket_addrs().unwrap().next().unwrap();
+    let addr = "mc.hypixel.net:25565"
+        .to_socket_addrs()
+        .unwrap()
+        .next()
+        .unwrap();
+    
     let mut conn = Conn::connect_timeout(&addr, Duration::new(30, 0)).unwrap();
 
     let packet = packets::Handshake {

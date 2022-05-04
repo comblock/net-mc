@@ -5,9 +5,13 @@ use cfb8::{
     cipher::{AsyncStreamCipher, NewCipher},
     Cfb8,
 };
-use std::{io::{self, Write}, convert::TryFrom, net::{TcpListener, ToSocketAddrs}};
 use std::net::{Shutdown, SocketAddr, TcpStream};
 use std::time::Duration;
+use std::{
+    convert::TryFrom,
+    io::{self, Write},
+    net::{TcpListener, ToSocketAddrs},
+};
 
 #[derive(Clone, Copy)]
 pub enum ProtocolState {
